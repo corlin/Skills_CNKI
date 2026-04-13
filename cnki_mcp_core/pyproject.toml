@@ -7,10 +7,18 @@ authors = [{ name = "corlin", email = "corlin@example.com" }]
 requires-python = ">=3.10"
 dependencies = [
     "fastmcp>=0.4.1",
-    "selenium>=4.25.0",
-    "webdriver-manager>=4.0.2",
+    "playwright>=1.49.0",
+    "playwright-stealth>=1.0.6",
     "asyncer>=0.0.8",
+    "setuptools>=70.0.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["core*", "services*"]
 
 [tool.uv]
 package = true
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

@@ -1,4 +1,8 @@
-# Core constants for CNKI MCP
+# 域名与入口配置
+DOMAIN_CNKI = "oversea.cnki.net"
+LINK_DOMAIN_CNKI = "link.oversea.cnki.net"
+HOME_URL = "https://oversea.cnki.net/"
+SEARCH_ENTRY = "https://oversea.cnki.net/kns8s/defaultresult/index"
 
 SEARCH_MODES = {
     "主题": "SU", "篇名": "TI", "关键词": "KY", "全文": "FT",

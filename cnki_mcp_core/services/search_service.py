@@ -1,22 +1,30 @@
-import time
+import asyncio
 from typing import List
 from urllib.parse import quote
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from core.constants import SEARCH_MODES, SORT_MODES
-from core.browser import BrowserPool
+from playwright.async_api import Page
+from core.constants import SEARCH_MODES, SORT_MODES, SEARCH_ENTRY
 
-def parse_grid_row(row) -> dict:
-    """解析知网结果表格行数据"""
+async def parse_grid_row(row) -> dict:
+    """异步解析海外版结果行数据"""
     try:
-        title_elem = row.find_element(By.CSS_SELECTOR, "td.name a")
-        title = title_elem.text.strip()
-        url = title_elem.get_attribute("href")
+        title_elem = await row.query_selector("td.name a, .fz14 a")
+        if not title_elem: return {}
         
-        authors = [a.text.strip() for a in row.find_elements(By.CSS_SELECTOR, "td.author a")]
-        source = row.find_element(By.CSS_SELECTOR, "td.source").text.strip()
-        date = row.find_element(By.CSS_SELECTOR, "td.date").text.strip()
+        title = (await title_elem.text_content()).strip()
+        url = await title_elem.get_attribute("href")
+        if url and not url.startswith("http"):
+            url = f"https://oversea.cnki.net{url}"
+            
+        # 作者
+        author_elems = await row.query_selector_all("td.author a")
+        authors = [(await a.text_content()).strip() for a in author_elems]
+        
+        # 来源与日期
+        source_elem = await row.query_selector("td.source")
+        source = (await source_elem.text_content()).strip() if source_elem else "未知"
+        
+        date_elem = await row.query_selector("td.date")
+        date = (await date_elem.text_content()).strip() if date_elem else ""
         
         return {
             "title": title,
@@ -25,38 +33,47 @@ def parse_grid_row(row) -> dict:
             "source": source,
             "date": date
         }
-    except:
+    except Exception as e:
+        print(f"DEBUG: 解析行失败: {e}")
         return {}
 
-def execute_protocol_search(pool: BrowserPool, query: str, mode: str, sort: str) -> List[dict]:
-    """执行协议级搜索流程"""
-    driver = pool.get_driver()
-    
-    # 构建 Starter URL
-    field = SEARCH_MODES.get(mode, "SU")
-    starter_url = f"https://kns.cnki.net/starter?rc=CJFQ&kw={quote(query)}&rt=journal&fd={field}"
-    
-    driver.get(starter_url)
-    
-    # 等待结果表格加载 (Grid 模式)
-    try:
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "table.result-table-list"))
-        )
-        
-        # 应用排序 (如果非默认)
-        if sort in SORT_MODES and sort != "相关度":
-            sort_id = SORT_MODES[sort]
-            driver.find_element(By.ID, sort_id).click()
-            time.sleep(2) # 等待重新加载
+async def execute_protocol_search(page: Page, query: str, mode: str, sort: str, retry_count: int = 2) -> List[dict]:
+    """使用 Playwright 执行高稳态 Direct URL 检索"""
+    for attempt in range(retry_count + 1):
+        try:
+            # 1. 构造 Direct URL
+            direct_url = f"{SEARCH_ENTRY}?kw={quote(query)}"
+            print(f"🚀 [Playwright] 尝试 {attempt+1} 开启海外版检索: {direct_url}")
             
-        rows = driver.find_elements(By.CSS_SELECTOR, "table.result-table-list tbody tr")
-        results = []
-        for row in rows[:15]: # 限制一页结果
-            info = parse_grid_row(row)
-            if info:
-                results.append(info)
-        return results
-    except Exception as e:
-        print(f"搜索发生错误: {e}")
-        return []
+            await page.goto(direct_url, wait_until="networkidle", timeout=30000)
+            
+            # 2. 等待结果渲染
+            try:
+                await page.wait_for_selector("table.result-table-list, .fz14", timeout=15000)
+            except:
+                # 如果没搜到结果
+                print("⚠️ 未发现结果容器，可能是无搜索结果。")
+                return []
+            
+            # 3. 提取行
+            rows = await page.query_selector_all("table.result-table-list tbody tr, .result-table-list-body tr")
+            results = []
+            for row in rows[:15]:
+                info = await parse_grid_row(row)
+                if info and info.get("title"):
+                    results.append(info)
+                    
+            if not results:
+                # 检查是否命中了 418 或者 验证码
+                content = await page.content()
+                if "418" in content or "机器人" in content:
+                    raise Exception("检测到 418 拦截或机器人验证")
+            
+            return results
+            
+        except Exception as e:
+            print(f"⚠️ Playwright 检索失败 (尝试 {attempt+1}): {e}")
+            if attempt < retry_count:
+                await asyncio.sleep(2)
+            else:
+                return []

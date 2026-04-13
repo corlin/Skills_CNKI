@@ -1,47 +1,46 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from core.browser import BrowserPool
+import asyncio
+from typing import Optional
+from playwright.async_api import Page, TimeoutError
 
-def _get_paper_detail_sync(pool: BrowserPool, url: str) -> dict:
-    """获取论文详情页的深入元数据"""
-    driver = pool.get_driver()
-    driver.get(url)
-    
-    paper = {"url": url}
+async def fetch_paper_details(page: Page, url: str) -> dict:
+    """使用 Playwright 异步获取论文详情 (元数据解析)"""
     try:
-        # 等待关键内容加载 (摘要区域)
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@id="ChDivSummary"]|//div[@class="abstract-text"]'))
-        )
+        print(f"📄 [Playwright] 正在访问详情页: {url}")
+        # 跳转并等待关键元素
+        await page.goto(url, wait_until="networkidle", timeout=20000)
         
-        # 基础元数据解析
+        # 定义选择器映射
         selectors = {
-            "title": '//div[@class="wx-tit"]/h1',
-            "authors": '//h3[@class="author"]/span/a',
-            "abstract": '//*[@id="ChDivSummary"]',
-            "keywords": '//p[@class="keywords"]/a',
-            "source": '//div[@class="top-tip"]//a[contains(@href, "navi.cnki.net")]',
-            "doi": '//li[contains(@class, "top-space") and contains(., "DOI")]/p'
+            "abstract": '//*[@id="ChDivSummary"]|//div[@class="abstract-text"]',
+            "keywords": '//div[@class="keywords"]//a|//span[@class="abstract-row"]//a',
+            "doi": '//div[contains(@class,"top-tip")]//li[contains(text(),"DOI")]/span|//span[@id="resbd_doi"]'
         }
         
-        for key, xpath in selectors.items():
-            try:
-                if key == "authors" or key == "keywords":
-                    elements = driver.find_elements(By.XPATH, xpath)
-                    paper[key] = [e.text.strip().rstrip(';；') for e in elements if e.text.strip()]
-                else:
-                    paper[key] = driver.find_element(By.XPATH, xpath).text.strip()
-            except:
-                paper[key] = ""
-        
-        # 获取被引和下载次数
+        # 提取摘要
+        abstract = ""
         try:
-            paper["cited_count"] = driver.find_element(By.XPATH, '//*[@id="refs"]//a|//div[@class="total-inform"]//span[contains(text(),"被引")]/../em').text.strip()
-            paper["download_count"] = driver.find_element(By.XPATH, '//*[@id="DownLoadParts"]//a|//div[@class="total-inform"]//span[contains(text(),"下载")]/../em').text.strip()
-        except:
-            paper["cited_count"] = paper["download_count"] = "0"
+            abs_elem = await page.wait_for_selector(selectors["abstract"], timeout=5000)
+            if abs_elem:
+                abstract = (await abs_elem.text_content()).strip()
+        except: pass
+            
+        # 提取关键词
+        kw_elems = await page.query_selector_all(selectors["keywords"])
+        keywords = [(await kw.text_content()).strip() for kw in kw_elems]
+        
+        # 提取 DOI (如果有)
+        doi = ""
+        try:
+            doi_elem = await page.query_selector(selectors["doi"])
+            if doi_elem:
+                doi = (await doi_elem.text_content()).strip()
+        except: pass
 
-        return paper
+        return {
+            "abstract": abstract,
+            "keywords": keywords,
+            "doi": doi
+        }
     except Exception as e:
-        return {"error": str(e), "url": url}
+        print(f"⚠️ [Playwright] 解析详情失败: {e}")
+        return {}

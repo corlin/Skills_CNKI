@@ -9,7 +9,8 @@
         "main.py"
       ],
       "env": {
-        "PYTHONPATH": "/Users/corlin/2026/Skill_CNKI/cnki_mcp_core"
+        "PYTHONPATH": "/Users/corlin/2026/Skill_CNKI/cnki_mcp_core",
+        "CNKI_DIRECT": "true"
       }
     }
   }

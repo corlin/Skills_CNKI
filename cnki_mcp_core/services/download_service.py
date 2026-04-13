@@ -1,55 +1,42 @@
 import os
+import asyncio
 import time
-import random
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from core.browser import BrowserPool
-from core.utils import get_safe_filename
+from playwright.async_api import Page, TimeoutError
 
-def execute_interactive_login(pool: BrowserPool):
-    """有界面浏览器交互登录"""
-    # 强制关闭现有 headless 驱动，开启 headed 驱动
-    pool.close()
-    driver = pool.get_driver(headless=False)
-    driver.get("https://login.cnki.net/login/?platform=kns&RedirectURL=https://www.cnki.net/")
+async def execute_interactive_login(page: Page) -> str:
+    """启动带界面的登录引导 (Playwright 版)"""
+    # 引导至登录页
+    login_url = "https://login.cnki.net/login/?platform=kns&RedirectURL=https://oversea.cnki.net/"
+    print(f"🔑 [Playwright] 正在引导至登录页: {login_url}")
     
-    # 给用户 60 秒时间登录
-    time.sleep(60) 
-    pool.save_cookies()
-    return "登录会话已保存。您现在可以关闭浏览器窗口或等待其自动回收。"
+    await page.goto("https://oversea.cnki.net/", wait_until="networkidle")
+    await page.goto(login_url, wait_until="networkidle")
+    
+    # 提示用户在可视化窗口操作
+    print("📢 请在弹出的浏览器窗口中完成登录。系统将等待 60 秒...")
+    await asyncio.sleep(60) 
+    
+    return "✅ 登录流程已结束，请检查是否成功已持久化。"
 
-def execute_download(pool: BrowserPool, url: str) -> dict:
-    """自动化下载流程"""
-    driver = pool.get_driver()
-    driver.get(url)
-    
-    # 1. 提取标题用于重命名
+async def execute_download(page: Page, paper_url: str, download_dir: str) -> str:
+    """使用 Playwright 处理文件下载"""
     try:
-        title = driver.find_element(By.XPATH, '//div[@class="wx-tit"]/h1').text.strip()
-        safe_title = get_safe_filename(title)
-    except:
-        safe_title = f"paper_{int(time.time())}"
-
-    # 2. 寻找下载按钮 (优先 PDF)
-    download_xpath = '//*[@id="pdfDown"] | //a[contains(@class, "pdf")] | //a[contains(text(), "PDF下载")]'
-    
-    try:
-        btn = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, download_xpath))
-        )
+        await page.goto(paper_url, wait_until="networkidle")
         
-        # 安全延迟 (5-7秒)
-        time.sleep(random.uniform(5, 7))
+        # 查找下载按钮 (海外版常见下载按钮文本或样式)
+        # 优先寻找 PDF 下载按钮
+        download_btn_selector = '//*[@id="pdfDown"]|//a[contains(text(),"PDF")]|//a[contains(@class,"download")]'
         
-        btn.click()
-        time.sleep(10) # 等待下载启动
+        btn = await page.wait_for_selector(download_btn_selector, timeout=10000)
         
-        return {
-            "status": "success",
-            "filename": f"{safe_title}.pdf",
-            "path": os.path.join(pool.download_dir, f"{safe_title}.pdf"),
-            "message": "下载指令已发出，请检查 downloads 目录。"
-        }
+        # 使用 Playwright 的 expect_download 捕捉下载事件
+        async with page.expect_download() as download_info:
+            await btn.click()
+            
+        download = await download_info.value
+        file_path = os.path.join(download_dir, download.suggested_filename)
+        await download.save_as(file_path)
+        
+        return f"🚀 下载成功: {file_path}"
     except Exception as e:
-        return {"status": "error", "message": f"未找到可用的下载链接或无权限: {str(e)}"}
+        return f"❌ 下载失败: {str(e)}"
