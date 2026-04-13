@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: cnki-mcp-core
+Version: 0.1.0
+Summary: 中国知网智能能力库核心框架
+Author-email: corlin <corlin@example.com>
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: fastmcp>=0.4.1
+Requires-Dist: playwright>=1.49.0
+Requires-Dist: playwright-stealth>=1.0.6
+Requires-Dist: asyncer>=0.0.8
+Requires-Dist: setuptools>=70.0.0
+
+# CNKI MCP Core
+
+中国知网智能能力库核心框架。

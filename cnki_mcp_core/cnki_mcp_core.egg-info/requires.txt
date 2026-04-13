@@ -1,0 +1,5 @@
+fastmcp>=0.4.1
+playwright>=1.49.0
+playwright-stealth>=1.0.6
+asyncer>=0.0.8
+setuptools>=70.0.0
