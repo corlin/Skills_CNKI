@@ -1,39 +1,16 @@
 {
   "mcpServers": {
-    "cnki-standard": {
-      "command": "uvx",
+    "skill-cnki": {
+      "command": "/opt/homebrew/bin/uv",
       "args": [
-        "--from",
-        "git+https://github.com/h-lu/cnki-mcp",
-        "cnki-mcp"
+        "run",
+        "--project",
+        "/Users/corlin/2026/Skill_CNKI/cnki_mcp_core",
+        "main.py"
       ],
-      "description": "专业级知网检索工具，支持篇名、摘要、作者、DOI检索。"
-    },
-    "cnki-verifier": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/buluo533/CNKI-MCP-Verifier",
-        "cnki-mcp-verifier"
-      ],
-      "description": "知网引文真实性核验工具，防止AI产生幻觉编造论文。"
-    },
-    "paper-find": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/h-lu/paper-find-mcp",
-        "paper-find-mcp"
-      ],
-      "description": "全球学术多源聚合搜索（CNKI, arXiv, Semantic Scholar等）。"
-    },
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-chrome-devtools"
-      ],
-      "description": "通过Chrome浏览器自动化执行知网高级检索和Zotero导出。"
+      "env": {
+        "PYTHONPATH": "/Users/corlin/2026/Skill_CNKI/cnki_mcp_core"
+      }
     }
   }
 }

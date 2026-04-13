@@ -1,65 +1,48 @@
-# Skills_CNKI: 中国知网 (CNKI) 智能学术助手能力库
+# Skill_CNKI: 中国知网集成科研基础设施 (Modular V2)
 
-[![Model Context Protocol](https://img.shields.io/badge/MCP-Standard-orange)](https://modelcontextprotocol.io/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+这是一个基于 MCP (Model Context Protocol) 协议构建的专业级知网科研工具集。本项目通过吸收 `cnki-mcp`, `CNKI-skills`, `library-access-mcp`, 和 `GeoSchlor-MCP` 等社区优秀项目的底层逻辑，为您提供一站式的学术辅助能力。
 
-本项目致力于通过 **Model Context Protocol (MCP)** 协议，为 AI 助手（如 Cursor, Claude Desktop, Windsurf）构建一套全面、稳健且合规的中国知网（CNKI）学术研究能力体系。
+## 📁 项目模块化结构
 
-## ✨ 核心能力
+为了保证高性能与易维护性，系统采用了模块化架构：
 
--   **🔍 智能文献检索**：多维度（主题、关键词、作者、DOI）精准检索知网文献，获取高质量元数据。
-    -   *推荐工具*：`h-lu/cnki-mcp`
--   **✅ 引文真实性核验**：自动化验证 AI 产生的学术引用，彻底消除“学术幻觉”。
-    -   *推荐工具*：`buluo533/CNKI-MCP-Verifier`
--   **联盟聚合搜索**：一键打通 CNKI 与 arXiv, Semantic Scholar, Google Scholar 等全球学术资源。
-    -   *推荐工具*：`h-lu/paper-find-mcp`
--   **🔗 官方 API 集成**：提供基于 `uv` 管理的 Python 封装框架，支持知网 OpenX 官方接口与 JWT 认证。
--   **🤖 自动化科研工作流**：支持期刊追踪、PDF 下载及文献自动导入 Zotero。
+-   **`core/`** (地中海核心):
+    -   `browser.py`: 高级浏览器池管理，自动处理 Cookie 持久化与反爬策略。
+    -   `constants.py`: 知网字段映射、排序选项等静态配置。
+    -   `utils.py`: 相似度计算、RIS 导出、安全文件名处理。
+-   **`services/`** (学术服务层):
+    -   `search_service.py`: 协议级精准搜索逻辑。
+    -   `detail_service.py`: 深度详情解析与元数据提取。
+    -   `download_service.py`: 自动化安全下载流程与交互登录。
+-   **`main.py`**: 服务统一入口。
 
-## 📁 目录结构
+## 🌟 核心工具集
 
-```text
-.
-├── documentation/          # 深度调研报告与使用指南
-│   ├── cnki_mcp_guide.md  # 主中心集成指南 (必读)
-│   └── refprj.md          # 社区 9 个相关开源项目深度分析
-├── mcp_configs/            # MCP 服务器配置模板 (.json)
-├── scripts/
-│   └── cnki_api_wrapper/   # 基于 uv 的官方 API 封装 Python 项目
-└── cnki_skill_definition.md # AI 助手统一技能调度定义
-```
+| 工具 | 核心逻辑来源 | 主要功能 |
+| :--- | :--- | :--- |
+| `search_cnki` | GeoSchlor-MCP | 协议级极速检索，支持多种过滤条件 |
+| `get_paper_detail` | cnki-mcp | 提取完整摘要、关键词、被引与 DOI |
+| `verify_paper` | CNKI-Verifier | 抗幻觉核验，检测引文真实性 |
+| `interactive_login` | Library-Bridge | 弹出窗口辅助登录机构/校园网 |
+| `download_paper` | CNKI-skills | 执行具有安全时延的自动化下载 |
+| `export_to_zotero` | Custom Logic | 一键生成 .ris 元数据，无缝导入 Zotero |
 
 ## 🚀 快速开始
 
-### 1. 配置 MCP 服务器
-将 `mcp_configs/cnki_unified_config.json` 中的各组件配置复制到您的 IDE (Cursor/Windsurf) 或 Claude Desktop 配置文件中。
-
-### 2. 使用官方 API 封装
+### 1. 安装依赖
 ```bash
-cd scripts/cnki_api_wrapper
+cd cnki_mcp_core
 uv sync
 ```
 
-### 3. 指令模式参考
-在 AI 对话中尝试：
-- *“帮我搜索关于 [量子计算] 的最新核心期刊论文，并核实结果的真实性。”*
-- *“根据这篇论文的 DOI，获取其详细摘要并导出到 Zotero。”*
+### 2. 连接 MCP 服务
+将 `mcp_configs/cnki_unified_config.json` 中的配置内容复制并贴入您的 Cursor 或 Claude Desktop 配置文件。
 
-## 📚 参考项目
-本项目在开发过程中深度参考并致敬了以下优秀开源项目：
-- `h-lu/cnki-mcp`
-- `cookjohn/cnki-skills`
-- `MagicCNKI`
-- `yang-kun-long/library-access-mcp`
+### 3. 连接状态检查
+启动服务后，首先运行 `check_status` 工具。如果提示需要权限，运行 `interactive_login` 并根据提示在弹出的窗口中登录您的机构账号。
 
-更多项目详情请参阅 [Reference Projects](documentation/refprj.md)。
-
-## ⚠️ 法律与免责声明
-本项目及其提供的配置方案仅用于学术研究与合规的数据检索。请务必遵守《中国知网用户服务协议》以及国家相关法律法规。**严禁利用此类工具进行大规模非法数据抓取或商业化分发。**
-
-## 🤝 贡献与反馈
-欢迎在 GitHub 提交 Issue 或 Pull Request 以完善本项目。
-
----
-Produced by Antigravity AI.
+## 🛡️ 安全提示
+本项目遵循 **CNKI-skills 六大安全原则**：
+- 默认执行 5-7 秒随机延迟。
+- 禁止任何破坏、攻击知网系统的行为。
+- 文件默认保存至 `downloads/` 目录。

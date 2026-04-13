@@ -1,0 +1,16 @@
+[project]
+name = "cnki-mcp-core"
+version = "0.1.0"
+description = "中国知网智能能力库核心框架"
+readme = "README.md"
+authors = [{ name = "corlin", email = "corlin@example.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=0.4.1",
+    "selenium>=4.25.0",
+    "webdriver-manager>=4.0.2",
+    "asyncer>=0.0.8",
+]
+
+[tool.uv]
+package = true
