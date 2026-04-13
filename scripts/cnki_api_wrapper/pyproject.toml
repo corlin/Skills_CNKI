@@ -1,0 +1,13 @@
+[project]
+name = "cnki-api-wrapper"
+version = "0.1.0"
+description = "中国知网官方 API 封装工具"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.28.0",
+    "pyjwt>=2.10.0",
+]
+
+[tool.uv]
+package = true
