@@ -99,6 +99,58 @@ async def download_paper(
         await page.close()
 
 @mcp.tool()
+async def export_to_zotero(
+    url: str,
+    ctx: Context,
+    pool: AsyncBrowserPool = Depends(get_pool)
+) -> str:
+    """获取论文详情并导出为 RIS 格式 (Zotero 兼容)。"""
+    await ctx.info(f"📤 正在导出元数据: {url}")
+    page = await pool.get_page()
+    try:
+        detail = await fetch_paper_details(page, url)
+        ris = _generate_ris(detail)
+        return ris
+    except Exception as e:
+        return f"❌ 导出失败: {str(e)}"
+    finally:
+        await page.close()
+
+@mcp.tool()
+async def verify_paper(
+    title: str,
+    abstract: str,
+    ctx: Context,
+    pool: AsyncBrowserPool = Depends(get_pool)
+) -> dict:
+    """抗幻觉核验：根据标题和摘要检测论文的真实性。"""
+    await ctx.info(f"🛡️ 正在核验文献真实性: {title}")
+    page = await pool.get_page()
+    try:
+        # 直接利用搜索功能找标题
+        results = await execute_protocol_search(page, title, "TI", "相关度")
+        if not results:
+            return {"status": "suspicious", "message": "未找到匹配论文，请警惕幻觉。", "similarity": 0}
+        
+        match = results[0]
+        # 获取匹配论文的详情进行摘要对齐
+        detail = await fetch_paper_details(page, match['url'])
+        sim = calculate_similarity(abstract, detail.get('abstract', ''))
+        
+        status = "verified" if sim > 0.6 else "warning"
+        return {
+            "status": status,
+            "similarity": round(sim, 2),
+            "matched_title": match['title'],
+            "matched_url": match['url'],
+            "message": "文献真实存在。" if status == "verified" else "找到同名文献但摘要差异较大，请核实。"
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"核验异常: {str(e)}"}
+    finally:
+        await page.close()
+
+@mcp.tool()
 async def check_status(ctx: Context, pool: AsyncBrowserPool = Depends(get_pool)) -> str:
     """检查知网核心连接状态 (Playwright 版)。"""
     try:
@@ -119,7 +171,9 @@ async def interactive_login(ctx: Context, pool: AsyncBrowserPool = Depends(get_p
     
     page = await pool.get_page()
     try:
-        return await execute_interactive_login(page)
+        res = await execute_interactive_login(page)
+        await pool.save_cookies()
+        return f"{res}\n✅ Session 已持久化至 {pool.cookie_path}"
     finally:
         await page.close()
 
