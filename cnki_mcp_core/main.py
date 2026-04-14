@@ -178,21 +178,34 @@ async def interactive_login(ctx: Context, pool: AsyncBrowserPool = Depends(get_p
     finally:
         await page.close()
 
+import os
+from dotenv import load_dotenv
+
+# 加载 .env 凭据 (若存在)
+load_dotenv()
+
 @mcp.tool()
 async def login_via_portal(
     ctx: Context, 
     pool: AsyncBrowserPool = Depends(get_pool),
-    username: str = "69023847", 
-    password: str = "cylgame"
+    username: str = None, 
+    password: str = None
 ) -> str:
     """通过书童图书馆门户授权访问知网。内置 OCR 验证码识别。"""
-    await ctx.info(f"🔑 正在启动书童门户授权流程 (账号: {username})...")
+    # 优先从参数获取，若空则从环境变量获取
+    username = username or os.getenv("SHUTONG_CARD")
+    password = password or os.getenv("SHUTONG_PASSWORD")
+    
+    if not username or not password:
+        return "❌ 缺少凭据：请在 .env 中设置 SHUTONG_CARD/SHUTONG_PASSWORD 或通过参数提供。"
+
+    await ctx.info(f"🔑 正在启动书童门户授权流程 (账号: {username[:4]}****)...")
     
     page = await pool.get_page()
     try:
-        res = await login_shutong_portal(page, username, password)
+        res_msg, active_page = await login_shutong_portal(page, username, password)
         await pool.save_cookies()
-        return res
+        return res_msg
     except Exception as e:
         return f"❌ 门户登录异常: {str(e)}"
     finally:

@@ -247,6 +247,7 @@ dependencies = [
     { name = "onnxruntime", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "playwright" },
     { name = "playwright-stealth" },
+    { name = "python-dotenv" },
     { name = "setuptools" },
 ]
 
@@ -258,6 +259,7 @@ requires-dist = [
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "playwright", specifier = ">=1.49.0" },
     { name = "playwright-stealth", specifier = ">=1.0.6" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "setuptools", specifier = ">=70.0.0" },
 ]
 

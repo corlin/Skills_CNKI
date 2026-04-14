@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.json
+.env
+*.pyc
+.DS_Store
+dist/
+build/
+*.egg-info/
+test_portal_full.py
+comprehensive_test.py
+test_login_gui.py

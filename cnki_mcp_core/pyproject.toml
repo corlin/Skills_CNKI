@@ -13,6 +13,7 @@ dependencies = [
     "setuptools>=70.0.0",
     "ddddocr>=1.6.1",
     "onnxruntime>=1.24.3",
+    "python-dotenv>=1.2.2",
 ]
 
 [tool.setuptools.packages.find]
