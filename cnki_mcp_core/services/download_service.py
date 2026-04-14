@@ -28,7 +28,8 @@ async def execute_download(page: Page, paper_url: str, download_dir: str) -> str
     支持：下拉菜单展开、多标签页监听、结算页识别、权限/余额不足智能诊断。
     """
     try:
-        await page.goto(paper_url, wait_until="networkidle")
+        # 使用更为宽松的等待策略以支持 VPN 镜像站
+        await page.goto(paper_url, wait_until="domcontentloaded", timeout=30000)
         
         # 1. 探测并定位下载菜单/按钮
         # 海外版可能直显 PDF 按钮，也可能隐藏在 Download 下拉菜单中

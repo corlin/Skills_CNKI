@@ -6,8 +6,8 @@ async def fetch_paper_details(page: Page, url: str) -> dict:
     """使用 Playwright 异步获取论文详情 (元数据解析)"""
     try:
         print(f"📄 [Playwright] 正在访问详情页: {url}")
-        # 跳转并等待关键元素
-        await page.goto(url, wait_until="networkidle", timeout=20000)
+        # 跳转并等待关键元素 (降低等待门槛以支持镜像站)
+        await page.goto(url, wait_until="domcontentloaded", timeout=25000)
         
         # 定义选择器映射
         selectors = {

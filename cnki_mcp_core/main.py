@@ -15,6 +15,7 @@ from core.utils import calculate_similarity, _generate_ris
 from services.search_service import execute_protocol_search
 from services.detail_service import fetch_paper_details
 from services.download_service import execute_interactive_login, execute_download
+from services.portal_service import login_shutong_portal
 
 @dataclass
 class AppContext:
@@ -174,6 +175,26 @@ async def interactive_login(ctx: Context, pool: AsyncBrowserPool = Depends(get_p
         res = await execute_interactive_login(page)
         await pool.save_cookies()
         return f"{res}\n✅ Session 已持久化至 {pool.cookie_path}"
+    finally:
+        await page.close()
+
+@mcp.tool()
+async def login_via_portal(
+    ctx: Context, 
+    pool: AsyncBrowserPool = Depends(get_pool),
+    username: str = "69023847", 
+    password: str = "cylgame"
+) -> str:
+    """通过书童图书馆门户授权访问知网。内置 OCR 验证码识别。"""
+    await ctx.info(f"🔑 正在启动书童门户授权流程 (账号: {username})...")
+    
+    page = await pool.get_page()
+    try:
+        res = await login_shutong_portal(page, username, password)
+        await pool.save_cookies()
+        return res
+    except Exception as e:
+        return f"❌ 门户登录异常: {str(e)}"
     finally:
         await page.close()
 

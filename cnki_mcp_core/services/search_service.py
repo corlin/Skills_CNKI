@@ -1,10 +1,14 @@
-import asyncio
+from core.constants import SEARCH_MODES, SORT_MODES, SEARCH_PATH
 from typing import List
-from urllib.parse import quote
+from urllib.parse import urlparse, quote
 from playwright.async_api import Page
-from core.constants import SEARCH_MODES, SORT_MODES, SEARCH_ENTRY
 
-async def parse_grid_row(row) -> dict:
+def get_base_url(url: str) -> str:
+    """从当前 URL 中提取协议、域名和端口"""
+    parsed = urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+async def parse_grid_row(row, base_url: str) -> dict:
     """异步解析海外版结果行数据"""
     try:
         title_elem = await row.query_selector("td.name a, .fz14 a")
@@ -13,7 +17,7 @@ async def parse_grid_row(row) -> dict:
         title = (await title_elem.text_content()).strip()
         url = await title_elem.get_attribute("href")
         if url and not url.startswith("http"):
-            url = f"https://oversea.cnki.net{url}"
+            url = f"{base_url}{url}" if url.startswith("/") else f"{base_url}/{url}"
             
         # 作者
         author_elems = await row.query_selector_all("td.author a")
@@ -38,14 +42,15 @@ async def parse_grid_row(row) -> dict:
         return {}
 
 async def execute_protocol_search(page: Page, query: str, mode: str, sort: str, retry_count: int = 2) -> List[dict]:
-    """使用 Playwright 执行高稳态 Direct URL 检索"""
+    base_url = get_base_url(page.url)
     for attempt in range(retry_count + 1):
         try:
-            # 1. 构造 Direct URL
-            direct_url = f"{SEARCH_ENTRY}?kw={quote(query)}"
-            print(f"🚀 [Playwright] 尝试 {attempt+1} 开启海外版检索: {direct_url}")
+            # 1. 构造 Direct URL (自适应 Base URL)
+            direct_url = f"{base_url}{SEARCH_PATH}?kw={quote(query)}"
+            print(f"🚀 [Playwright] 尝试 {attempt+1} 开启检索: {direct_url}")
             
-            await page.goto(direct_url, wait_until="networkidle", timeout=30000)
+            # 使用较宽松的加载等待条件以适配镜像站
+            await page.goto(direct_url, wait_until="domcontentloaded", timeout=30000)
             
             # 2. 等待结果渲染
             try:
@@ -59,7 +64,7 @@ async def execute_protocol_search(page: Page, query: str, mode: str, sort: str, 
             rows = await page.query_selector_all("table.result-table-list tbody tr, .result-table-list-body tr")
             results = []
             for row in rows[:15]:
-                info = await parse_grid_row(row)
+                info = await parse_grid_row(row, base_url)
                 if info and info.get("title"):
                     results.append(info)
                     

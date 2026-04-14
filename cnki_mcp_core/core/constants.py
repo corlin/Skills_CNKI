@@ -1,8 +1,11 @@
 # 域名与入口配置
 DOMAIN_CNKI = "oversea.cnki.net"
 LINK_DOMAIN_CNKI = "link.oversea.cnki.net"
-HOME_URL = "https://oversea.cnki.net/"
-SEARCH_ENTRY = "https://oversea.cnki.net/kns8s/defaultresult/index"
+# 域名与入口路径配置
+DOMAIN_CNKI = "oversea.cnki.net"
+HOME_PATH = "/"
+SEARCH_PATH = "/kns8s/defaultresult/index"
+DETAIL_PATH = "/kcms2/article/abstract"
 
 SEARCH_MODES = {
     "主题": "SU", "篇名": "TI", "关键词": "KY", "全文": "FT",
